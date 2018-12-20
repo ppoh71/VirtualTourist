@@ -1,24 +1,64 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="13122.16" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="14460.31" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+    <device id="retina4_7" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="13104.12"/>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14460.20"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--View Controller-->
+        <!--Map ViewVC-->
         <scene sceneID="tne-QT-ifu">
             <objects>
-                <viewController id="BYZ-38-t0r" customClass="ViewController" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="BYZ-38-t0r" customClass="MapViewVC" customModule="VirtualTourtist" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <mapView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" mapType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="VCw-Fa-2pB">
+                                <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                            </mapView>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="44o-dB-g8n">
+                                <rect key="frame" x="165" y="617" width="45" height="30"/>
+                                <state key="normal" title="Button 1"/>
+                                <connections>
+                                    <action selector="testButtonTapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="SfG-TC-4DY"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="eAL-pf-afM">
+                                <rect key="frame" x="281" y="617" width="59" height="30"/>
+                                <state key="normal" title="Button 2"/>
+                                <connections>
+                                    <action selector="testButton2Tapped:" destination="BYZ-38-t0r" eventType="touchUpInside" id="TDP-YW-awS"/>
+                                </connections>
+                            </button>
+                        </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="VCw-Fa-2pB" firstAttribute="bottom" secondItem="6Tk-OE-BBY" secondAttribute="bottom" id="2B0-wV-UGG"/>
+                            <constraint firstItem="eAL-pf-afM" firstAttribute="leading" secondItem="44o-dB-g8n" secondAttribute="trailing" constant="71" id="CLZ-Ew-JTf"/>
+                            <constraint firstItem="VCw-Fa-2pB" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" id="KdU-wl-TPm"/>
+                            <constraint firstItem="44o-dB-g8n" firstAttribute="centerX" secondItem="VCw-Fa-2pB" secondAttribute="centerX" id="Oid-hf-GdM"/>
+                            <constraint firstItem="44o-dB-g8n" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="165" id="Xut-kl-4lm"/>
+                            <constraint firstItem="VCw-Fa-2pB" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="aM1-VP-qol"/>
+                            <constraint firstItem="eAL-pf-afM" firstAttribute="baseline" secondItem="44o-dB-g8n" secondAttribute="baseline" id="nBW-8B-gtJ"/>
+                            <constraint firstItem="VCw-Fa-2pB" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="q5k-D8-G9q"/>
+                            <constraint firstAttribute="bottom" secondItem="44o-dB-g8n" secondAttribute="bottom" constant="20" symbolic="YES" id="tJq-Z3-ZSO"/>
+                        </constraints>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                     </view>
+                    <connections>
+                        <outlet property="mapView" destination="VCw-Fa-2pB" id="wke-Vi-x4B"/>
+                        <outlet property="testButton" destination="44o-dB-g8n" id="cHB-HG-wqJ"/>
+                        <outlet property="testButton2" destination="eAL-pf-afM" id="7az-eE-PnE"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
+            <point key="canvasLocation" x="140" y="132.68365817091455"/>
         </scene>
     </scenes>
 </document>
