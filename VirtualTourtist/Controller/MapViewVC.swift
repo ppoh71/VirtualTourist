@@ -40,6 +40,11 @@ class MapViewVC: UIViewController {
     func setup(){
         addNotifications()
         setStoredVisibleArea()
+        mapView.delegate = self
+        
+        //add long tap gesture tp mapview
+        let longTapGesture = UILongPressGestureRecognizer(target: self, action: #selector(longTap(sender:)))
+        mapView.addGestureRecognizer(longTapGesture)
     }
     
     // MARK: Notifications
@@ -51,12 +56,25 @@ class MapViewVC: UIViewController {
         NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
     }
     
+    // MARK: Target Functions
     @objc func appMovedToBackground() {
         print("App moved to background!")
         persistCurrentVisibleMapArea()
     }
     
-    // MARK: MAP Functions
+    @objc func longTap(sender: UIGestureRecognizer){
+        print("long tap")
+        if sender.state == .began {
+            let locationInView = sender.location(in: mapView)
+            let locationOnMap = mapView.convert(locationInView, toCoordinateFrom: mapView)
+            addAnnotation(location: locationOnMap)
+        }
+    }
+}
+
+// MARK: MapKit Helper Function
+extension MapViewVC{
+    
     func persistCurrentVisibleMapArea(){
         visibleArea = [
             "x": mapView.visibleMapRect.minX,
@@ -76,6 +94,44 @@ class MapViewVC: UIViewController {
                 let storedVisibleArea = MKMapRect(x: x, y:  y, width: width, height: height)
                 mapView.visibleMapRect = storedVisibleArea
                 print("visible Area")
+            }
+        }
+    }
+    
+    func addAnnotation(location: CLLocationCoordinate2D){
+        let annotation = MKPointAnnotation()
+        annotation.coordinate = location
+        annotation.title = "Some Title"
+        annotation.subtitle = "Some Subtitle"
+        self.mapView.addAnnotation(annotation)
+    }
+}
+
+// MARK: MapView Delegates
+extension MapViewVC: MKMapViewDelegate{
+    
+    func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+        guard annotation is MKPointAnnotation else { print("no mkpointannotaions"); return nil }
+        
+        let reuseId = "pin"
+        var pinView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId) as? MKPinAnnotationView
+        
+        if pinView == nil {
+            pinView = MKPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+            pinView!.canShowCallout = true
+            pinView!.rightCalloutAccessoryView = UIButton(type: .infoDark)
+            pinView!.pinTintColor = UIColor.black
+        }
+        else {
+            pinView!.annotation = annotation
+        }
+        return pinView
+    }
+    
+    func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
+        if control == view.rightCalloutAccessoryView {
+            if let doSomething = view.annotation?.title! {
+                print("do something")
             }
         }
     }
