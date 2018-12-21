@@ -128,7 +128,12 @@ extension MapViewVC: MKMapViewDelegate{
         return pinView
     }
     
+    func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+        print("tapped on pin ")
+    }
+    
     func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
+        print("tapped on pin")
         if control == view.rightCalloutAccessoryView {
             if let doSomething = view.annotation?.title! {
                 print("do something")
