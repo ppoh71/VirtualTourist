@@ -8,6 +8,7 @@
 
 import UIKit
 import MapKit
+import CoreData
 
 class MapViewVC: UIViewController {
 
@@ -17,6 +18,10 @@ class MapViewVC: UIViewController {
     
     var lastVisibleMapArea: MKMapRect!
     var visibleArea = Dictionary<String, Double>()
+    
+    var dataController: DataController!
+    var fetchedPinsController: NSFetchedResultsController<Pin>!
+    
     
     @IBAction func testButtonTapped(_ sender: Any) {
         setStoredVisibleArea()
@@ -45,6 +50,8 @@ class MapViewVC: UIViewController {
         //add long tap gesture tp mapview
         let longTapGesture = UILongPressGestureRecognizer(target: self, action: #selector(longTap(sender:)))
         mapView.addGestureRecognizer(longTapGesture)
+        
+        fetchPins()
     }
     
     // MARK: Notifications
@@ -65,15 +72,63 @@ class MapViewVC: UIViewController {
     @objc func longTap(sender: UIGestureRecognizer){
         print("long tap")
         if sender.state == .began {
-            let locationInView = sender.location(in: mapView)
-            let locationOnMap = mapView.convert(locationInView, toCoordinateFrom: mapView)
-            addAnnotation(location: locationOnMap)
+            getLocationInView(sender)
+        }
+    }
+    
+    func fetchPins(){
+        let fetchRequest: NSFetchRequest<Pin> = Pin.fetchRequest()
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createDate", ascending: false)]
+        
+        fetchedPinsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: dataController.viewContext, sectionNameKeyPath: nil, cacheName: "pins")
+        
+        do{
+            try fetchedPinsController.performFetch()
+            print("Fetched Pins Success \(fetchedPinsController.fetchedObjects?.count)")
+            addStoredPinsToMap()
+        } catch{
+            print("Fetch Pins Error")
+        }
+    }
+    
+    func persistPin(location: CLLocationCoordinate2D){
+        let newPin = Pin(context: dataController.viewContext)
+        newPin.latitude = location.latitude
+        newPin.longitude = location.longitude
+        newPin.createDate = Date()
+        
+        do{
+            try dataController.viewContext.save()
+            print("saved view context")
+        } catch{
+            print("Persist New Pin Error")
         }
     }
 }
 
 // MARK: MapKit Helper Function
 extension MapViewVC{
+    
+    fileprivate func getLocationInView(_ sender: UIGestureRecognizer) {
+        let locationInView = sender.location(in: mapView)
+        let locationOnMap: CLLocationCoordinate2D? = mapView.convert(locationInView, toCoordinateFrom: mapView)
+        
+        if let locationOnMap = locationOnMap{
+            addAnnotation(location: locationOnMap)
+            persistPin(location: locationOnMap)
+        }
+    }
+    
+    fileprivate func addStoredPinsToMap() {
+       self.mapView.removeAnnotations(self.mapView.annotations)
+        if let fetchedPins = fetchedPinsController.fetchedObjects{
+            for pin in fetchedPins {
+                print(pin.latitude)
+                let location = CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude)
+                addAnnotation(location: location)
+            }
+        }
+    }
     
     func persistCurrentVisibleMapArea(){
         visibleArea = [
@@ -103,7 +158,8 @@ extension MapViewVC{
         annotation.coordinate = location
         annotation.title = "Some Title"
         annotation.subtitle = "Some Subtitle"
-        self.mapView.addAnnotation(annotation)
+        self.mapView.addAnnotation((annotation))
+        
     }
 }
 
@@ -118,7 +174,7 @@ extension MapViewVC: MKMapViewDelegate{
         
         if pinView == nil {
             pinView = MKPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
-            pinView!.canShowCallout = true
+            pinView!.canShowCallout = false
             pinView!.rightCalloutAccessoryView = UIButton(type: .infoDark)
             pinView!.pinTintColor = UIColor.black
         }
@@ -129,15 +185,12 @@ extension MapViewVC: MKMapViewDelegate{
     }
     
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
-        print("tapped on pin ")
-    }
-    
-    func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
-        print("tapped on pin")
-        if control == view.rightCalloutAccessoryView {
-            if let doSomething = view.annotation?.title! {
-                print("do something")
-            }
+        
+        if let latitude = view.annotation?.coordinate.latitude, let longitude = view.annotation?.coordinate.longitude{
+            let photoAlbumVC = storyboard!.instantiateViewController(withIdentifier: "PhotoAlbum") as! PhotoAlbumVC
+            photoAlbumVC.dataController = dataController
+            photoAlbumVC.location = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            self.navigationController?.pushViewController(photoAlbumVC, animated: true)
         }
     }
 }
