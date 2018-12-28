@@ -13,23 +13,12 @@ import CoreData
 class MapViewVC: UIViewController {
 
     @IBOutlet weak var mapView: MKMapView!
-    @IBOutlet weak var testButton: UIButton!
-    @IBOutlet weak var testButton2: UIButton!
     
     var lastVisibleMapArea: MKMapRect!
     var visibleArea = Dictionary<String, Double>()
     
     var dataController: DataController!
     var fetchedPinsController: NSFetchedResultsController<Pin>!
-    
-    
-    @IBAction func testButtonTapped(_ sender: Any) {
-        setStoredVisibleArea()
-    }
-    
-    @IBAction func testButton2Tapped(_ sender: Any) {
-        persistCurrentVisibleMapArea()
-    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -47,7 +36,6 @@ class MapViewVC: UIViewController {
         setStoredVisibleArea()
         mapView.delegate = self
         
-        //add long tap gesture tp mapview
         let longTapGesture = UILongPressGestureRecognizer(target: self, action: #selector(longTap(sender:)))
         mapView.addGestureRecognizer(longTapGesture)
         
@@ -75,6 +63,10 @@ class MapViewVC: UIViewController {
             getLocationInView(sender)
         }
     }
+}
+
+// MARK: CoreData Function
+extension MapViewVC{
     
     func fetchPins(){
         let fetchRequest: NSFetchRequest<Pin> = Pin.fetchRequest()
@@ -106,10 +98,10 @@ class MapViewVC: UIViewController {
     }
 }
 
-// MARK: MapKit Helper Function
+// MARK: MapKit Function
 extension MapViewVC{
     
-    fileprivate func getLocationInView(_ sender: UIGestureRecognizer) {
+    func getLocationInView(_ sender: UIGestureRecognizer) {
         let locationInView = sender.location(in: mapView)
         let locationOnMap: CLLocationCoordinate2D? = mapView.convert(locationInView, toCoordinateFrom: mapView)
         
@@ -119,11 +111,10 @@ extension MapViewVC{
         }
     }
     
-    fileprivate func addStoredPinsToMap() {
+    func addStoredPinsToMap() {
        self.mapView.removeAnnotations(self.mapView.annotations)
         if let fetchedPins = fetchedPinsController.fetchedObjects{
             for pin in fetchedPins {
-                print(pin.latitude)
                 let location = CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude)
                 addAnnotation(location: location)
             }
@@ -138,8 +129,6 @@ extension MapViewVC{
             "height": mapView.visibleMapRect.height
         ]
         UserDefaults.standard.set(visibleArea, forKey: "VisibleMapArea")
-        print("persist visible area")
-        print(visibleArea)
     }
     
     func setStoredVisibleArea(){
@@ -148,7 +137,6 @@ extension MapViewVC{
             if let x = visibleArea["x"], let y = visibleArea["y"], let width = visibleArea["width"], let height = visibleArea["height"]{
                 let storedVisibleArea = MKMapRect(x: x, y:  y, width: width, height: height)
                 mapView.visibleMapRect = storedVisibleArea
-                print("visible Area")
             }
         }
     }
@@ -159,7 +147,6 @@ extension MapViewVC{
         annotation.title = "Some Title"
         annotation.subtitle = "Some Subtitle"
         self.mapView.addAnnotation((annotation))
-        
     }
 }
 
@@ -185,12 +172,14 @@ extension MapViewVC: MKMapViewDelegate{
     }
     
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
-        
+        print("tapped on pin")
         if let latitude = view.annotation?.coordinate.latitude, let longitude = view.annotation?.coordinate.longitude{
+            
             let photoAlbumVC = storyboard!.instantiateViewController(withIdentifier: "PhotoAlbum") as! PhotoAlbumVC
             photoAlbumVC.dataController = dataController
             photoAlbumVC.location = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
             self.navigationController?.pushViewController(photoAlbumVC, animated: true)
+            mapView.deselectAnnotation(view.annotation, animated: false)
         }
     }
 }
