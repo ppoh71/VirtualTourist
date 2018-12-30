@@ -10,4 +10,4 @@ Travel Locations Map allows a user to drop pins with a touch and hold gesture. P
 ## Installation
 
 ## Licensing:
-
+Public Domain
