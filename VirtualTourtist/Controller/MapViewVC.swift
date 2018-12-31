@@ -19,6 +19,7 @@ class MapViewVC: UIViewController {
     
     var dataController: DataController!
     var fetchedPinsController: NSFetchedResultsController<Pin>!
+    var fetchedPinByLocationController: NSFetchedResultsController<Pin>!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -76,11 +77,37 @@ extension MapViewVC{
         
         do{
             try fetchedPinsController.performFetch()
-            print("Fetched Pins Success \(fetchedPinsController.fetchedObjects?.count)")
+            print("Fetched Pins Success \(String(describing: fetchedPinsController.fetchedObjects?.count))")
             addStoredPinsToMap()
         } catch{
             print("Fetch Pins Error")
         }
+    }
+    
+    func fetchPin(latitude: Double, longitude: Double) -> Pin?{
+        var fetchedPin: Pin?
+        let fetchRequest: NSFetchRequest<Pin> = Pin.fetchRequest()
+        let predicateLat = NSPredicate(format: "latitude == %lf", latitude)
+        let predicateLong = NSPredicate(format: "longitude == %lf", longitude)
+        fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [predicateLat, predicateLong])
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createDate", ascending: false)]
+        
+        fetchedPinByLocationController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: dataController.viewContext, sectionNameKeyPath: nil, cacheName: "pin")
+        
+        do{
+            try fetchedPinByLocationController.performFetch()
+
+            if let fetchedResult = fetchedPinByLocationController.fetchedObjects{
+                if fetchedResult.count >= 1 {
+                    fetchedPin = fetchedResult[0]
+                }
+            }
+            
+        } catch {
+             print("fetched single pin error")
+        }
+        
+        return fetchedPin
     }
     
     func persistPin(location: CLLocationCoordinate2D){
@@ -116,6 +143,7 @@ extension MapViewVC{
         if let fetchedPins = fetchedPinsController.fetchedObjects{
             for pin in fetchedPins {
                 let location = CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude)
+                print("Added: \(pin.latitude) \(pin.longitude)")
                 addAnnotation(location: location)
             }
         }
@@ -174,12 +202,15 @@ extension MapViewVC: MKMapViewDelegate{
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
         print("tapped on pin")
         if let latitude = view.annotation?.coordinate.latitude, let longitude = view.annotation?.coordinate.longitude{
-            
-            let photoAlbumVC = storyboard!.instantiateViewController(withIdentifier: "PhotoAlbum") as! PhotoAlbumVC
-            photoAlbumVC.dataController = dataController
-            photoAlbumVC.location = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-            self.navigationController?.pushViewController(photoAlbumVC, animated: true)
-            mapView.deselectAnnotation(view.annotation, animated: false)
+            if let fetchedPin = fetchPin(latitude: latitude, longitude: longitude){
+                let photoAlbumVC = storyboard!.instantiateViewController(withIdentifier: "PhotoAlbum") as! PhotoAlbumVC
+                photoAlbumVC.dataController = dataController
+                photoAlbumVC.location = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+                photoAlbumVC.pin = fetchedPin
+                
+                self.navigationController?.pushViewController(photoAlbumVC, animated: true)
+                mapView.deselectAnnotation(view.annotation, animated: false)
+            }
         }
     }
 }
