@@ -39,6 +39,7 @@ class DataController{
                 fatalError(error!.localizedDescription)
             }
             print("DataController loaded")
+            self.configureContext()
             completionHandler?()
         }
     }
