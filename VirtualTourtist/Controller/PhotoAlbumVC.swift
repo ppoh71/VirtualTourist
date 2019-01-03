@@ -138,15 +138,17 @@ extension PhotoAlbumVC{
         
     }
     
-    func deletePersitedSinglePhoto(index: Int) {
-        let backgroundContext: NSManagedObjectContext = dataController.backgroundContext
+    func deletePersitedSinglePhoto(at indexPath: IndexPath) {
+        let deletePhoto = fetchPhotosResultController.object(at: indexPath)
+        dataController.viewContext.delete(deletePhoto)
         
-        if let fetchedPhotos = self.fetchPhotosResultController.fetchedObjects{
-            if fetchedPhotos[index] != nil {
-                print(fetchedPhotos[index])
-            }
+        do{
+            try dataController.viewContext.save()
+            photos.remove(at: indexPath.row)
+            collectionView.deleteItems(at: [indexPath])
+        } catch {
+            print("delete perssted photo failed")
         }
-        
     }
     
 }
@@ -277,7 +279,7 @@ extension PhotoAlbumVC: UICollectionViewDelegate, UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         print("collectionView tapped: \(indexPath)")
-        deletePersitedSinglePhoto(index: (indexPath as IndexPath).row)
+        deletePersitedSinglePhoto(at: indexPath)
     }
 }
 
@@ -298,19 +300,13 @@ extension PhotoAlbumVC: NSFetchedResultsControllerDelegate{
     }
     
     func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
-        //print("end updates \(String(describing: newIndexPath))")
-        
-        //        switch type {
-        //        case .insert:
-        //            tableView.insertRows(at: [newIndexPath!], with: .fade)
-        //        case .delete:
-        //            tableView.deleteRows(at: [indexPath!], with: .fade)
-        //        case .move:
-        //            tableView.reloadRows(at: [indexPath!], with: .fade)
-        //        case .update:
-        //            tableView.moveRow(at: indexPath!, to: newIndexPath!)
-        //        }
-        
+        switch type {
+        case .delete:
+            print("delete at \(indexPath)")
+            
+       default:
+            break
+        }
     }
 }
 
