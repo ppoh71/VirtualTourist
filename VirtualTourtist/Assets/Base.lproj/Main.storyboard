@@ -10,7 +10,7 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--Map ViewVC-->
+        <!--Virtual Tourist-->
         <scene sceneID="tne-QT-ifu">
             <objects>
                 <viewController id="BYZ-38-t0r" customClass="MapViewVC" customModule="VirtualTourtist" customModuleProvider="target" sceneMemberID="viewController">
@@ -31,7 +31,7 @@
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                     </view>
-                    <navigationItem key="navigationItem" id="YjS-aM-tBZ"/>
+                    <navigationItem key="navigationItem" title="Virtual Tourist" id="YjS-aM-tBZ"/>
                     <connections>
                         <outlet property="mapView" destination="VCw-Fa-2pB" id="wke-Vi-x4B"/>
                     </connections>
@@ -49,13 +49,13 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <mapView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" mapType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="76s-Mo-aCU">
-                                <rect key="frame" x="0.0" y="53" width="375" height="139"/>
+                                <rect key="frame" x="0.0" y="85" width="375" height="102"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="139" id="nus-pQ-zOa"/>
+                                    <constraint firstAttribute="height" constant="102" id="nus-pQ-zOa"/>
                                 </constraints>
                             </mapView>
                             <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" dataMode="prototypes" translatesAutoresizingMaskIntoConstraints="NO" id="wvu-Mu-i17">
-                                <rect key="frame" x="0.0" y="192" width="375" height="418"/>
+                                <rect key="frame" x="0.0" y="187" width="375" height="423"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="10" minimumInteritemSpacing="10" id="r7u-Gb-aGh">
                                     <size key="itemSize" width="115" height="115"/>
@@ -63,6 +63,10 @@
                                     <size key="footerReferenceSize" width="0.0" height="0.0"/>
                                     <inset key="sectionInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
                                 </collectionViewFlowLayout>
+                                <activityIndicatorView key="backgroundView" opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" animating="YES" style="gray" id="7tX-ga-D9J">
+                                    <rect key="frame" x="0.0" y="0.0" width="375" height="423"/>
+                                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                </activityIndicatorView>
                                 <cells>
                                     <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="CollectionCell" id="dhb-3A-DmL" customClass="CollectionCellVC" customModule="VirtualTourtist" customModuleProvider="target">
                                         <rect key="frame" x="0.0" y="0.0" width="115" height="115"/>
@@ -71,11 +75,12 @@
                                             <rect key="frame" x="0.0" y="0.0" width="115" height="115"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
-                                                <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="PlD-e7-ZzK">
+                                                <imageView userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="PlD-e7-ZzK">
                                                     <rect key="frame" x="0.0" y="0.0" width="115" height="115"/>
                                                 </imageView>
                                             </subviews>
                                         </view>
+                                        <color key="backgroundColor" white="0.66666666669999997" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <constraints>
                                             <constraint firstAttribute="bottom" secondItem="PlD-e7-ZzK" secondAttribute="bottom" id="1Fd-d7-eL2"/>
                                             <constraint firstAttribute="trailing" secondItem="PlD-e7-ZzK" secondAttribute="trailing" id="SG1-6d-41U"/>
@@ -105,7 +110,7 @@
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
                             <constraint firstItem="76s-Mo-aCU" firstAttribute="trailing" secondItem="0P2-eh-rUZ" secondAttribute="trailing" id="2Tg-qT-ZBq"/>
-                            <constraint firstItem="76s-Mo-aCU" firstAttribute="top" secondItem="bTe-uV-meM" secondAttribute="top" constant="53" id="BhW-GC-2T6"/>
+                            <constraint firstItem="76s-Mo-aCU" firstAttribute="top" secondItem="bTe-uV-meM" secondAttribute="top" constant="85" id="BhW-GC-2T6"/>
                             <constraint firstItem="wvu-Mu-i17" firstAttribute="bottom" secondItem="0P2-eh-rUZ" secondAttribute="bottom" constant="-57" id="ENS-La-vVF"/>
                             <constraint firstItem="wvu-Mu-i17" firstAttribute="leading" secondItem="0P2-eh-rUZ" secondAttribute="leading" id="FYU-Zn-AvT"/>
                             <constraint firstItem="wvu-Mu-i17" firstAttribute="trailing" secondItem="0P2-eh-rUZ" secondAttribute="trailing" id="Shq-Lb-4RG"/>
@@ -118,6 +123,9 @@
                     </view>
                     <connections>
                         <outlet property="collectionView" destination="wvu-Mu-i17" id="Nrx-wb-F3R"/>
+                        <outlet property="flowLayout" destination="r7u-Gb-aGh" id="OWG-WG-QDu"/>
+                        <outlet property="indicator" destination="7tX-ga-D9J" id="f0Y-Qm-w5g"/>
+                        <outlet property="mapTopConstraint" destination="BhW-GC-2T6" id="3rh-Jq-eXq"/>
                         <outlet property="mapView" destination="76s-Mo-aCU" id="zjA-vx-tPI"/>
                         <outlet property="newCollectionButton" destination="vUv-bw-e2Z" id="cBp-pN-Ujb"/>
                     </connections>

@@ -17,36 +17,113 @@ class PhotoAlbumVC: UIViewController {
     @IBOutlet weak var mapView: MKMapView!
     @IBOutlet weak var collectionView: UICollectionView!
     @IBOutlet weak var newCollectionButton: UIButton!
+    @IBOutlet weak var flowLayout: UICollectionViewFlowLayout!
+    @IBOutlet weak var indicator: UIActivityIndicatorView!
+    @IBOutlet weak var mapTopConstraint: NSLayoutConstraint!
     
     var dataController: DataController!
     var fetchPhotosResultController: NSFetchedResultsController<Photo>!
     var location: CLLocationCoordinate2D!
     var pin: Pin!
     var photos = [UIImage?]()
+    var downloadedPhotos = 0
+    var isActiveDownload = false
+    var orientation = UIDevice.current.orientation
+    var lastOrientation = UIDevice.current.orientation
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setup()
     }
     
+    override func viewWillDisappear(_ animated: Bool) {
+        unsubscribeNotification()
+    }
+    
     @IBAction func newCollectionButtonTapped(_ sender: Any) {
-        photos = [UIImage]()
-        collectionView.reloadData()
-        deletePersistedPhotos()
-        getFlickrPhotosForLocation()
+        print("tapped")
+        if !isActiveDownload{
+            photos = [UIImage]()
+            collectionView.reloadData()
+            deletePersistedPhotos()
+        }
     }
     
     func setup() {
+        newCollectionButton.isEnabled = false
         collectionView.dataSource = self
         collectionView.delegate = self
         mapView.delegate = self
+        setFlowLayout(orientation: UIDevice.current.orientation)
+        subscribeToNotification()
         addAnnotation(location: location)
         centerMapToAnnotation(location: location)
         setupfetchPhotosResultController()
     }
+    
+    func setActiveDownload(isActive: Bool){
+        isActiveDownload = isActive
+        DispatchQueue.main.async {
+            self.newCollectionButton.isEnabled = !isActive
+        }
+        
+        if isActive{
+            DispatchQueue.main.async {
+                self.indicator.startAnimating()
+            }
+        } else {
+            DispatchQueue.main.async {
+                self.indicator.stopAnimating()
+            }
+        }
+    }
+    
+    func subscribeToNotification(){
+        NotificationCenter.default.addObserver(self, selector: #selector(deviceOrientationDidChange), name: UIDevice.orientationDidChangeNotification, object: nil)
+    }
+    
+    func unsubscribeNotification(){
+        NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
+    }
+    
+    @objc func deviceOrientationDidChange(_ notification: Notification) {
+        orientation = UIDevice.current.orientation
+        setFlowLayout(orientation: UIDevice.current.orientation)
+    }
+    
+    func setFlowLayout(orientation: UIDeviceOrientation){
+        let width = UIScreen.main.bounds.width
+        let height = UIScreen.main.bounds.height
+        let space:CGFloat = 1
+        let horizontalDevider = width > 810 ? CGFloat(4.5) : CGFloat(4.0) //iphone 7.. or iphone x..
+        
+        if(orientation.isLandscape == true || lastOrientation.isLandscape && orientation.isFlat && true){
+            flowLayout.sectionInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+            flowLayout.itemSize = CGSize(width: width / horizontalDevider, height: width / 5.5)
+            flowLayout.minimumInteritemSpacing = 0
+            flowLayout.minimumLineSpacing = 0
+            
+            mapTopConstraint.constant = 45
+            collectionView.reloadData()
+        }
+        else{
+            let dimensionWidth = (width - (2 * space)) / 3.0
+            let dimensionHeight = (height - (2 * space)) / 7.0
+            flowLayout.minimumInteritemSpacing = space
+            flowLayout.minimumLineSpacing = space
+            flowLayout.itemSize = CGSize(width: dimensionWidth, height: dimensionHeight)
+            
+            mapTopConstraint.constant = 85
+            collectionView.reloadData()
+        }
+        
+        lastOrientation = UIDevice.current.orientation
+    }
+    
+    
 }
 
-// MARK: CoreData Functions
+// MARK: --- --- ---   COREDATA Functions --- --- ---
 extension PhotoAlbumVC{
     
     func setupfetchPhotosResultController(){
@@ -68,6 +145,7 @@ extension PhotoAlbumVC{
                     getFlickrPhotosForLocation()
                 } else {
                     print("photos fetched count: \(fetchResult.count)")
+                    setActiveDownload(isActive: false)
                     handleFetchedPhotos()
                 }
             }
@@ -90,6 +168,7 @@ extension PhotoAlbumVC{
             
             do{
                 try backgroundContext.save()
+                //print("background photo saved")
             } catch {
                 print("background not saved")
             }
@@ -103,13 +182,13 @@ extension PhotoAlbumVC{
             for photo in fetchedPhotos {
                 let newPhoto = imageFromPhotoData(imageData: photo.photoData)
                 self.photos.append(newPhoto!)
-                print("fetched Photo")
             }
             collectionView.reloadData()
         }
     }
     
     func deletePersistedPhotos(){
+        setActiveDownload(isActive: true)
         let backgroundContext: NSManagedObjectContext = dataController.backgroundContext
         var photoObjetcs = [NSManagedObjectID]()
         
@@ -128,6 +207,7 @@ extension PhotoAlbumVC{
             do{
                 try backgroundContext.save()
                 print("deleted saved")
+                self.getFlickrPhotosForLocation()
                 DispatchQueue.main.async {
                     self.collectionView.reloadData()
                 }
@@ -139,7 +219,20 @@ extension PhotoAlbumVC{
     }
     
     func deletePersitedSinglePhoto(at indexPath: IndexPath) {
-        let deletePhoto = fetchPhotosResultController.object(at: indexPath)
+        guard isActiveDownload == false else{
+            print("active download, no delete")
+            return
+        }
+        
+        print("count objetcs & indexpath")
+        print(fetchPhotosResultController.fetchedObjects?.count as Any)
+        print(indexPath)
+        
+        guard let deletePhoto = fetchPhotosResultController.object(at: indexPath) as Photo? else {
+            print("guard delete photo")
+            return
+        }
+        
         dataController.viewContext.delete(deletePhoto)
         
         do{
@@ -153,10 +246,12 @@ extension PhotoAlbumVC{
     
 }
 
-// MARK: FlickrApi & Photo Download
+// MARK: --- --- --- FlickrApi & Photo Download --- --- ---
 extension PhotoAlbumVC{
     
     func getFlickrPhotosForLocation() {
+        setActiveDownload(isActive: true)
+        
         flickrApi.getPhotosByLocation(latitude: location.latitude, longitude: location.longitude) { (result, error) in
             guard error == nil else {
                 print("flickr api error")
@@ -169,6 +264,7 @@ extension PhotoAlbumVC{
                     self.handlePhotoFlickrResponse(photos: result.photos.photo)
                     DispatchQueue.main.async {
                         self.collectionView.reloadData()
+                        
                     }
                 } else{
                     print("No photos for this location")
@@ -187,12 +283,19 @@ extension PhotoAlbumVC{
             let isIndexValid = self.photos.indices.contains(index)
             
             if isIndexValid {
+                self.downloadedPhotos += 1
                 self.photos[index] = photo
                 self.persistPhoto(photo: photo, index: index)
                 DispatchQueue.main.async {
                     self.collectionView.reloadData()
                 }
             }
+            
+            if self.downloadedPhotos == self.photos.count {
+                self.downloadedPhotos = 0
+                self.setActiveDownload(isActive: false)
+            }
+
         }
     }
     
@@ -203,6 +306,7 @@ extension PhotoAlbumVC{
     }
     
     func initEmptyPhotoArray(count: Int){
+        print("PHOTS ARRAY COUNT \(photos.count)")
         photos = [UIImage?](repeating: nil, count: count)
         collectionView.reloadData()
     }
@@ -216,7 +320,7 @@ extension PhotoAlbumVC{
     }
 }
 
-// MARK: MapKit Helper Function
+// MARK: --- --- --- MapKit Helper Function --- --- ---
 extension PhotoAlbumVC{
     
     func addAnnotation(location: CLLocationCoordinate2D){
@@ -235,7 +339,7 @@ extension PhotoAlbumVC{
     }
 }
 
-// MARK: MapView Delegates
+// MARK: --- --- --- MapView Delegates --- --- ---
 extension PhotoAlbumVC: MKMapViewDelegate{
     
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
@@ -256,7 +360,7 @@ extension PhotoAlbumVC: MKMapViewDelegate{
     }
 }
 
-// MARK: CollectionView Delegates
+// MARK: --- --- --- CollectionView Delegates
 extension PhotoAlbumVC: UICollectionViewDelegate, UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return photos.count
@@ -264,7 +368,6 @@ extension PhotoAlbumVC: UICollectionViewDelegate, UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CollectionCell", for: indexPath) as! CollectionCellVC
-        print("############### photo count: \(photos.count) index: \(index)")
         
         if  photos.count - 1  >= (indexPath as IndexPath).row {
             if let photo = photos[(indexPath as IndexPath).row] as UIImage? {
@@ -284,26 +387,26 @@ extension PhotoAlbumVC: UICollectionViewDelegate, UICollectionViewDataSource {
 }
 
 extension PhotoAlbumVC: NSFetchedResultsControllerDelegate{
-    
+
     func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange sectionInfo: NSFetchedResultsSectionInfo, atSectionIndex sectionIndex: Int, for type: NSFetchedResultsChangeType) {
     }
-    
+
     func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
         //print("begin updates")
         //print(fetchPhotosResultController.fetchedObjects?.count)
         //tableView.beginUpdates()
     }
-    
+
     func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
         //print("end updates")
         //tableView.endUpdates()
     }
-    
+
     func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
         switch type {
         case .delete:
-            print("delete at \(indexPath)")
-            
+            print("#########delete at \(indexPath)")
+
        default:
             break
         }

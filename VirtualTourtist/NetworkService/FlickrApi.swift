@@ -27,7 +27,7 @@ class FlickrApi{
             case .baseUrl:
                 return "https://api.flickr.com/services/rest/"
             case .getPhotosByLocation(let latitude, let longitude):
-                return Endpoints.baseUrl.stringValue + "?method=flickr.photos.search&api_key=" + shared.apiKey + "&lat=\(latitude)&lon=\(longitude)&per_page=50&format=json&nojsoncallback=1"
+                return Endpoints.baseUrl.stringValue + "?method=flickr.photos.search&api_key=" + shared.apiKey + "&lat=\(latitude)&lon=\(longitude)&per_page=27&format=json&nojsoncallback=1"
             case .downloadPhotoUrl(let farm, let server, let id,  let secret):
                 return "https://farm\(farm).staticflickr.com/\(server)/\(id)_\(secret).jpg"
             }
@@ -51,6 +51,7 @@ class FlickrApi{
         let task = URLSession.shared.dataTask(with: photoUrl) { (data, response, error) in
             guard let data = data else{
                 print("no photo data")
+                 completion(nil, index, nil)
                 return
             }
             
