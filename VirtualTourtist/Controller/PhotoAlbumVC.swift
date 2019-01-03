@@ -13,7 +13,7 @@ import CoreData
 let flickrApi = FlickrApi.shared
 
 class PhotoAlbumVC: UIViewController {
-
+    
     @IBOutlet weak var mapView: MKMapView!
     @IBOutlet weak var collectionView: UICollectionView!
     @IBOutlet weak var newCollectionButton: UIButton!
@@ -22,20 +22,7 @@ class PhotoAlbumVC: UIViewController {
     var fetchPhotosResultController: NSFetchedResultsController<Photo>!
     var location: CLLocationCoordinate2D!
     var pin: Pin!
-    var photos = [UIImage]()
-    var photosCountForCollectionView: Int {
-        var count = 0
-        if let fetchedObjects = fetchPhotosResultController.fetchedObjects{
-            if fetchedObjects.count > 0 {
-                count = fetchedObjects.count
-                //print("collection count: fetched \(count)")
-            } else {
-                count = photos.count
-                //print("collection count: photos \(count)")
-            }
-        }
-        return count
-    }
+    var photos = [UIImage?]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -46,97 +33,81 @@ class PhotoAlbumVC: UIViewController {
         photos = [UIImage]()
         collectionView.reloadData()
         deletePersistedPhotos()
-        //getFlickrPhotosForLocation()
+        getFlickrPhotosForLocation()
     }
-
-    fileprivate func setup() {
+    
+    func setup() {
         collectionView.dataSource = self
         collectionView.delegate = self
         mapView.delegate = self
         addAnnotation(location: location)
         centerMapToAnnotation(location: location)
-//        print(location.latitude)
-//        print(location.longitude)
-          print(pin)
-        
         setupfetchPhotosResultController()
-        //getFlickrPhotosForLocation()
     }
 }
 
 // MARK: CoreData Functions
 extension PhotoAlbumVC{
     
-    func persistPhoto(photo: UIImage){
-        let backgroundContext: NSManagedObjectContext = dataController.backgroundContext
-        let pinObjectId = pin.objectID
-        
-        backgroundContext.perform {
-            //var newPhoto = Photo(
-            let pinContext = backgroundContext.object(with: pinObjectId) as! Pin
-            
-            let newPhoto = Photo(context: backgroundContext)
-            newPhoto.photoData = photo.jpegData(compressionQuality: 1)
-            newPhoto.pin = pinContext
-            
-            do{
-                try backgroundContext.save()
-                //print("saved background context")
-            } catch {
-                print("background not saved")
-            }
-        }
-    }
-    
     func setupfetchPhotosResultController(){
         let fetchRequest: NSFetchRequest<Photo> = Photo.fetchRequest()
         let predicate = NSPredicate(format: "pin == %@", pin)
         fetchRequest.predicate = predicate
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createDate", ascending: false)]
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "index", ascending: true)]
         fetchPhotosResultController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: dataController.viewContext, sectionNameKeyPath: nil, cacheName: "pinCache\(pin.latitude)\(pin.longitude)")
         
         fetchPhotosResultController.delegate = self
-        
         print("fetch photos")
         
         do{
             try fetchPhotosResultController.performFetch()
             
             if let fetchResult = fetchPhotosResultController.fetchedObjects{
-                if fetchResult.count > 0 {
-                    print("photos fetched count: \(fetchResult.count)")
-//                    handleFetchedPhotos()
-                    collectionView.reloadData()
-                } else {
+                if fetchResult.count == 0 {
                     print("get flickr photos, no fetched photos found")
                     getFlickrPhotosForLocation()
+                } else {
+                    print("photos fetched count: \(fetchResult.count)")
+                    handleFetchedPhotos()
                 }
             }
-            
-            
             print("Fetched Pins Success \(String(describing: fetchPhotosResultController.fetchedObjects?.count))")
         } catch{
             print("Fetch Pins Error")
         }
-        print("end")
     }
     
-//    fileprivate func handleFetchedPhotos() {
-//        print("handle fetched Photos")
-//        if let fetchedPhotos = fetchPhotosResultController.fetchedObjects{
-//            print("handle fetched Photos ?")
-//            self.photos = [UIImage]()
-//
-//            for photo in fetchedPhotos {
-//                if let photoData = photo.photoData{
-//                    let newPhoto = UIImage(data: photoData)
-//                    self.photos.append(newPhoto!)
-//                    print("fetched Photo")
-//                }
-//            }
-//            collectionView.reloadData()
-//        }
-//    }
+    func persistPhoto(photo: UIImage, index: Int){
+        let backgroundContext: NSManagedObjectContext = dataController.backgroundContext
+        let pinObjectId = pin.objectID
+        
+        backgroundContext.perform {
+            let pinContext = backgroundContext.object(with: pinObjectId) as! Pin
+            let newPhoto = Photo(context: backgroundContext)
+            newPhoto.photoData = photo.jpegData(compressionQuality: 1)
+            newPhoto.index = Int16(index)
+            newPhoto.pin = pinContext
+            
+            do{
+                try backgroundContext.save()
+            } catch {
+                print("background not saved")
+            }
+        }
+    }
+    
+    func handleFetchedPhotos() {
+        if let fetchedPhotos = fetchPhotosResultController.fetchedObjects{
+            self.photos = [UIImage]()
+            
+            for photo in fetchedPhotos {
+                let newPhoto = imageFromPhotoData(imageData: photo.photoData)
+                self.photos.append(newPhoto!)
+                print("fetched Photo")
+            }
+            collectionView.reloadData()
+        }
+    }
     
     func deletePersistedPhotos(){
         let backgroundContext: NSManagedObjectContext = dataController.backgroundContext
@@ -191,18 +162,15 @@ extension PhotoAlbumVC{
             }
             
             if let result = result{
-                print("klickr photo counts \(result.photos.photo.count)")
-
                 if result.photos.photo.count > 0{
+                    self.initEmptyPhotoArray(count: result.photos.photo.count)
+                    self.handlePhotoFlickrResponse(photos: result.photos.photo)
                     DispatchQueue.main.async {
-                        self.initEmptyPhotoArray(count: result.photos.photo.count)
                         self.collectionView.reloadData()
                     }
-                    self.handlePhotoFlickrResponse(photos: result.photos.photo)
                 } else{
                     print("No photos for this location")
                 }
-                
             }
         }
     }
@@ -218,9 +186,9 @@ extension PhotoAlbumVC{
             
             if isIndexValid {
                 self.photos[index] = photo
-                self.persistPhoto(photo: photo)
+                self.persistPhoto(photo: photo, index: index)
                 DispatchQueue.main.async {
-                    //self.collectionView.reloadData()
+                    self.collectionView.reloadData()
                 }
             }
         }
@@ -233,18 +201,17 @@ extension PhotoAlbumVC{
     }
     
     func initEmptyPhotoArray(count: Int){
-        photos = [UIImage](repeating: UIImage(), count: count)
+        photos = [UIImage?](repeating: nil, count: count)
         collectionView.reloadData()
     }
     
     func imageFromPhotoData(imageData: Data?) -> UIImage?{
-        var image = UIImage()
         if let imageData = imageData {
-            image = UIImage(data: imageData)!
+            return UIImage(data: imageData)
+        } else {
+            return UIImage(named: "preview")
         }
-        return image
     }
-    
 }
 
 // MARK: MapKit Helper Function
@@ -273,7 +240,7 @@ extension PhotoAlbumVC: MKMapViewDelegate{
         guard annotation is MKPointAnnotation else { print("no mkpointannotaions"); return nil }
         let reuseId = "pin"
         var pinView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId) as? MKPinAnnotationView
-
+        
         if pinView == nil {
             pinView = MKPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
             pinView!.canShowCallout = false
@@ -290,28 +257,21 @@ extension PhotoAlbumVC: MKMapViewDelegate{
 // MARK: CollectionView Delegates
 extension PhotoAlbumVC: UICollectionViewDelegate, UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return photosCountForCollectionView
+        return photos.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CollectionCell", for: indexPath) as! CollectionCellVC
-//        print("cell stuff")
-//        print(photos.count)
-//        print((indexPath as IndexPath).row)
-        let itemsCount = fetchPhotosResultController.fetchedObjects?.count ?? 0
+        print("############### photo count: \(photos.count) index: \(index)")
         
-        if itemsCount != 0 && itemsCount - 1  >= (indexPath as IndexPath).row {
-            let photo = fetchPhotosResultController.object(at: indexPath)
-            cell.collectionImage.image = imageFromPhotoData(imageData: photo.photoData)
-            cell.layer.borderWidth = CGFloat(0.5)
-            cell.layer.borderColor = UIColor(red: 50.0/255, green: 52.0/255, blue: 54.0/255, alpha: 1.0).cgColor
+        if  photos.count - 1  >= (indexPath as IndexPath).row {
+            if let photo = photos[(indexPath as IndexPath).row] as UIImage? {
+                cell.collectionImage.image = photo
+            } else {
+                cell.collectionImage.image = UIImage(named: "preview")
+            }
         }
-         else {
-            cell.collectionImage.image = UIImage(named: "preview")
-            cell.layer.borderWidth = CGFloat(0.5)
-            cell.layer.borderColor = UIColor(red: 50.0/255, green: 52.0/255, blue: 54.0/255, alpha: 1.0).cgColor
-        }
-
+        
         return cell
     }
     
@@ -327,28 +287,29 @@ extension PhotoAlbumVC: NSFetchedResultsControllerDelegate{
     }
     
     func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        print("begin updates")
+        //print("begin updates")
+        //print(fetchPhotosResultController.fetchedObjects?.count)
         //tableView.beginUpdates()
     }
     
     func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        print("end updates")
+        //print("end updates")
         //tableView.endUpdates()
     }
     
     func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
-        print("end updates \(String(describing: newIndexPath))")
+        //print("end updates \(String(describing: newIndexPath))")
         
-//        switch type {
-//        case .insert:
-//            tableView.insertRows(at: [newIndexPath!], with: .fade)
-//        case .delete:
-//            tableView.deleteRows(at: [indexPath!], with: .fade)
-//        case .move:
-//            tableView.reloadRows(at: [indexPath!], with: .fade)
-//        case .update:
-//            tableView.moveRow(at: indexPath!, to: newIndexPath!)
-//        }
+        //        switch type {
+        //        case .insert:
+        //            tableView.insertRows(at: [newIndexPath!], with: .fade)
+        //        case .delete:
+        //            tableView.deleteRows(at: [indexPath!], with: .fade)
+        //        case .move:
+        //            tableView.reloadRows(at: [indexPath!], with: .fade)
+        //        case .update:
+        //            tableView.moveRow(at: indexPath!, to: newIndexPath!)
+        //        }
         
     }
 }
