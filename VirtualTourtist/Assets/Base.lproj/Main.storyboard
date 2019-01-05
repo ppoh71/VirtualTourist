@@ -93,6 +93,12 @@
                                     </collectionViewCell>
                                 </cells>
                             </collectionView>
+                            <label hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="No Photos found!" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="25E-W6-SJo">
+                                <rect key="frame" x="121" y="323.5" width="133.5" height="20"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="vUv-bw-e2Z">
                                 <rect key="frame" x="117.5" y="618" width="140" height="30"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -113,7 +119,9 @@
                             <constraint firstItem="76s-Mo-aCU" firstAttribute="top" secondItem="bTe-uV-meM" secondAttribute="top" constant="85" id="BhW-GC-2T6"/>
                             <constraint firstItem="wvu-Mu-i17" firstAttribute="bottom" secondItem="0P2-eh-rUZ" secondAttribute="bottom" constant="-57" id="ENS-La-vVF"/>
                             <constraint firstItem="wvu-Mu-i17" firstAttribute="leading" secondItem="0P2-eh-rUZ" secondAttribute="leading" id="FYU-Zn-AvT"/>
+                            <constraint firstItem="25E-W6-SJo" firstAttribute="centerX" secondItem="bTe-uV-meM" secondAttribute="centerX" id="Fao-Z2-V7l"/>
                             <constraint firstItem="wvu-Mu-i17" firstAttribute="trailing" secondItem="0P2-eh-rUZ" secondAttribute="trailing" id="Shq-Lb-4RG"/>
+                            <constraint firstItem="25E-W6-SJo" firstAttribute="centerY" secondItem="bTe-uV-meM" secondAttribute="centerY" id="eMP-ZA-NLz"/>
                             <constraint firstItem="wvu-Mu-i17" firstAttribute="top" secondItem="76s-Mo-aCU" secondAttribute="bottom" id="nTJ-QC-tqU"/>
                             <constraint firstItem="vUv-bw-e2Z" firstAttribute="centerX" secondItem="bTe-uV-meM" secondAttribute="centerX" id="r9g-fK-2gx"/>
                             <constraint firstItem="0P2-eh-rUZ" firstAttribute="bottom" secondItem="vUv-bw-e2Z" secondAttribute="bottom" constant="19" id="v15-Al-0Kz"/>
@@ -128,6 +136,7 @@
                         <outlet property="mapTopConstraint" destination="BhW-GC-2T6" id="3rh-Jq-eXq"/>
                         <outlet property="mapView" destination="76s-Mo-aCU" id="zjA-vx-tPI"/>
                         <outlet property="newCollectionButton" destination="vUv-bw-e2Z" id="cBp-pN-Ujb"/>
+                        <outlet property="noPhotosLabel" destination="25E-W6-SJo" id="gkx-yA-PHt"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="WH8-rD-zgY" userLabel="First Responder" sceneMemberID="firstResponder"/>

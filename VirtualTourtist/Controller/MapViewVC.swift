@@ -23,13 +23,11 @@ class MapViewVC: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        print("did load")
         setup()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         removeNotifications()
-        print("will disappear")
     }
     
     func setup(){
@@ -77,7 +75,6 @@ extension MapViewVC{
         
         do{
             try fetchedPinsController.performFetch()
-            print("Fetched Pins Success \(String(describing: fetchedPinsController.fetchedObjects?.count))")
             addStoredPinsToMap()
         } catch{
             print("Fetch Pins Error")

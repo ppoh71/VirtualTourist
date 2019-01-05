@@ -41,9 +41,9 @@ class FlickrApi{
     private init(){
     }
     
-    func flickrPhotoURL(farmId: String, serverId: String, id: String, secret: String) -> String{
-        return "https://farm\(farmId).staticflickr.com/\(serverId)/\(id)_\(secret).jpg"
-    }
+//    func flickrPhotoURL(farmId: String, serverId: String, id: String, secret: String) -> String{
+//        return "https://farm\(farmId).staticflickr.com/\(serverId)/\(id)_\(secret).jpg"
+//    }
     
     func loadFlickrPhoto(photo: FlickrPhoto, index: Int, completion: @escaping (UIImage?, Int?, Error?) -> Void ){
         let photoUrl = Endpoints.downloadPhotoUrl(farm: photo.farm, server: photo.server, id: photo.id, secret: photo.secret).url
