@@ -35,10 +35,9 @@ class DataController{
     func load(completionHandler: (() -> Void)? = nil) {
         persistentContainer.loadPersistentStores { (description, error) in
             guard error == nil else{
-                print("Persistence Stor Load Error")
                 fatalError(error!.localizedDescription)
             }
-            print("DataController loaded")
+
             self.configureContext()
             completionHandler?()
         }

@@ -46,7 +46,6 @@ class PhotoAlbumVC: UIViewController {
         if !isActiveState{
             deletePersistedPhotos { (success, error) in
                 guard error == nil else {
-                    print("guard error ")
                     return
                 }
                 
@@ -75,6 +74,10 @@ class PhotoAlbumVC: UIViewController {
         //check if there are stored photos in coredata, else make new download from flickr
         setupfetchPhotosResultController { (hasStoredObjects, error) in
             self.setActiveState(isActive: false)
+            guard error == nil else {
+                showAlert(title: "Fetch Photos Error", message: error!.localizedDescription)
+                return
+            }
             
             if hasStoredObjects{
                 handleFetchedPhotos()
@@ -118,7 +121,10 @@ class PhotoAlbumVC: UIViewController {
         let width = UIScreen.main.bounds.width
         let height = UIScreen.main.bounds.height
         let space:CGFloat = 1
+        
         let horizontalDevider = width > 810 ? CGFloat(4.5) : CGFloat(4.0) //iphone 7.. or iphone x..
+        let topDistancePortrait = width > 810 ? CGFloat(85) : CGFloat(65)
+        let topDistanceLandscape = width > 810 ? CGFloat(45) : CGFloat(25)
         
         if(orientation.isLandscape == true || lastOrientation.isLandscape && orientation.isFlat && true){
             flowLayout.sectionInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
@@ -126,7 +132,7 @@ class PhotoAlbumVC: UIViewController {
             flowLayout.minimumInteritemSpacing = 0
             flowLayout.minimumLineSpacing = 0
             
-            mapTopConstraint.constant = 45
+            mapTopConstraint.constant = topDistanceLandscape
             collectionView.reloadData()
         }
         else{
@@ -136,17 +142,20 @@ class PhotoAlbumVC: UIViewController {
             flowLayout.minimumLineSpacing = space
             flowLayout.itemSize = CGSize(width: dimensionWidth, height: dimensionHeight)
             
-            mapTopConstraint.constant = 85
+            mapTopConstraint.constant = topDistancePortrait
             collectionView.reloadData()
         }
         
         lastOrientation = UIDevice.current.orientation
     }
     
-    
+    func showAlert(title: String, message: String){
+        let alert = Utilities.defineAlert(title: title, message: message)
+        self.present(alert, animated: true)
+    }
 }
 
-// MARK: --- --- ---   COREDATA Functions --- --- ---
+// MARK: --- --- --- COREDATA Functions --- --- ---
 extension PhotoAlbumVC{
     
     func setupfetchPhotosResultController(completion: (Bool, Error?) -> Void){
@@ -189,7 +198,7 @@ extension PhotoAlbumVC{
             do{
                 try backgroundContext.save()
             } catch {
-                print("photo not saved")
+                self.showAlert(title: "Persist Photo Error", message: error.localizedDescription)
             }
         }
     }
@@ -202,7 +211,10 @@ extension PhotoAlbumVC{
                 let newPhoto = imageFromPhotoData(imageData: photo.photoData)
                 self.photos.append(newPhoto!)
             }
-            collectionView.reloadData()
+            DispatchQueue.main.async {
+                 self.collectionView.reloadData()
+            }
+           
         }
     }
     
@@ -235,12 +247,10 @@ extension PhotoAlbumVC{
     
     func deletePersitedSinglePhoto(at indexPath: IndexPath) {
         guard isActiveState == false else{
-            print("active download, no delete")
             return
         }
         
         guard let deletePhoto = fetchPhotosResultController.object(at: indexPath) as Photo? else {
-            print("guard delete photo")
             return
         }
         
@@ -252,7 +262,7 @@ extension PhotoAlbumVC{
                 self.photos.remove(at: indexPath.row)
                 self.collectionView.deleteItems(at: [indexPath])
             } catch {
-                print("delete perssted photo failed")
+                self.showAlert(title: "Delete Persist Photo Error", message: error.localizedDescription)
             }
         }
     }
@@ -266,7 +276,7 @@ extension PhotoAlbumVC{
         
         flickrApi.getPhotosByLocation(latitude: location.latitude, longitude: location.longitude) { (result, error) in
             guard error == nil else {
-                print("flickr api error")
+                self.showAlert(title: "Get Photos for Location Error", message: error?.localizedDescription ?? "FlickrApi Error")
                 return
             }
             
@@ -283,7 +293,6 @@ extension PhotoAlbumVC{
                         self.noPhotosLabel.isHidden = false
                         self.setActiveState(isActive: false)
                     }
-                    print("No photos for this location")
                 }
             }
         }
@@ -292,7 +301,6 @@ extension PhotoAlbumVC{
     func downloadFlickrPhoto(photo: FlickrPhoto, index: Int){
         flickrApi.loadFlickrPhoto(photo: photo, index: index) { (photo, index, error) in
             guard let photo = photo, let index = index else{
-                print("not image from flicr download")
                 return
             }
             
@@ -323,14 +331,17 @@ extension PhotoAlbumVC{
     
     func initEmptyPhotoArray(count: Int){
         photos = [UIImage?](repeating: nil, count: count)
-        collectionView.reloadData()
+        DispatchQueue.main.async {
+             self.collectionView.reloadData()
+        }
+       
     }
     
     func imageFromPhotoData(imageData: Data?) -> UIImage?{
         if let imageData = imageData {
             return UIImage(data: imageData)
         } else {
-            return UIImage(named: "preview2")
+            return UIImage(named: "preview")
         }
     }
 }
@@ -375,7 +386,7 @@ extension PhotoAlbumVC: MKMapViewDelegate{
     }
 }
 
-// MARK: --- --- --- CollectionView Delegates
+// MARK: --- --- --- CollectionView Delegates --- --- ---
 extension PhotoAlbumVC: UICollectionViewDelegate, UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return photos.count
@@ -400,22 +411,18 @@ extension PhotoAlbumVC: UICollectionViewDelegate, UICollectionViewDataSource {
     }
 }
 
+// MARK: --- --- --- NSFetchedResultsControllerDelegate --- --- ---
 extension PhotoAlbumVC: NSFetchedResultsControllerDelegate{
 
     func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
         /*
-         implement to function keep resultController up-to-date on very perform.
-         no explicit action on every perform implemented but possile with switch
-         
+         implement this function to keep resultController up-to-date on very perform.
+         no explicit action on every perform implemented, but possile with switch
         switch type {
-        case .insert:
-            print("insert")
-        case .delete:
-            print("delete")
-        case .move:
-            print("move")
-        case .update:
-            print("update")
+            case .insert:
+            case .delete:
+            case .move:
+            case .update:
         } */
     }
 }

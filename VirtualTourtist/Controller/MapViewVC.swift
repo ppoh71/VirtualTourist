@@ -16,7 +16,6 @@ class MapViewVC: UIViewController {
     
     var lastVisibleMapArea: MKMapRect!
     var visibleArea = Dictionary<String, Double>()
-    
     var dataController: DataController!
     var fetchedPinsController: NSFetchedResultsController<Pin>!
     var fetchedPinByLocationController: NSFetchedResultsController<Pin>!
@@ -41,7 +40,6 @@ class MapViewVC: UIViewController {
         fetchPins()
     }
     
-    // MARK: Notifications
     func addNotifications(){
         NotificationCenter.default.addObserver(self, selector: #selector(appMovedToBackground), name: UIApplication.willResignActiveNotification, object: nil)
     }
@@ -50,21 +48,23 @@ class MapViewVC: UIViewController {
         NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
     }
     
-    // MARK: Target Functions
     @objc func appMovedToBackground() {
-        print("App moved to background!")
         persistCurrentVisibleMapArea()
     }
     
     @objc func longTap(sender: UIGestureRecognizer){
-        print("long tap")
         if sender.state == .began {
             getLocationInView(sender)
         }
     }
+    
+    func showAlert(title: String, message: String){
+        let alert = Utilities.defineAlert(title: title, message: message)
+        self.present(alert, animated: true)
+    }
 }
 
-// MARK: CoreData Function
+// MARK: --- --- --- CoreData Function --- --- --- 
 extension MapViewVC{
     
     func fetchPins(){
@@ -77,7 +77,7 @@ extension MapViewVC{
             try fetchedPinsController.performFetch()
             addStoredPinsToMap()
         } catch{
-            print("Fetch Pins Error")
+            showAlert(title: "Fetch Pins Error", message: error.localizedDescription)
         }
     }
     
@@ -101,7 +101,7 @@ extension MapViewVC{
             }
             
         } catch {
-             print("fetched single pin error")
+            showAlert(title: "Fetch Pin Error", message: error.localizedDescription)
         }
         
         return fetchedPin
@@ -115,14 +115,13 @@ extension MapViewVC{
         
         do{
             try dataController.viewContext.save()
-            print("saved view context")
         } catch{
-            print("Persist New Pin Error")
+            showAlert(title: "Persist Pin Error", message: error.localizedDescription)
         }
     }
 }
 
-// MARK: MapKit Function
+// MARK: --- --- --- MapKit Function --- --- ---
 extension MapViewVC{
     
     func getLocationInView(_ sender: UIGestureRecognizer) {
@@ -140,7 +139,6 @@ extension MapViewVC{
         if let fetchedPins = fetchedPinsController.fetchedObjects{
             for pin in fetchedPins {
                 let location = CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude)
-                print("Added: \(pin.latitude) \(pin.longitude)")
                 addAnnotation(location: location)
             }
         }
@@ -169,13 +167,13 @@ extension MapViewVC{
     func addAnnotation(location: CLLocationCoordinate2D){
         let annotation = MKPointAnnotation()
         annotation.coordinate = location
-        annotation.title = "Some Title"
-        annotation.subtitle = "Some Subtitle"
+//        annotation.title = "Some Title"
+//        annotation.subtitle = "Some Subtitle"
         self.mapView.addAnnotation((annotation))
     }
 }
 
-// MARK: MapView Delegates
+// MARK: --- --- --- MapView Delegates --- --- ---
 extension MapViewVC: MKMapViewDelegate{
     
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
@@ -197,7 +195,6 @@ extension MapViewVC: MKMapViewDelegate{
     }
     
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
-        print("tapped on pin")
         if let latitude = view.annotation?.coordinate.latitude, let longitude = view.annotation?.coordinate.longitude{
             if let fetchedPin = fetchPin(latitude: latitude, longitude: longitude){
                 let photoAlbumVC = storyboard!.instantiateViewController(withIdentifier: "PhotoAlbum") as! PhotoAlbumVC
