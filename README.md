@@ -12,7 +12,7 @@ The app will have two view controller scenes.
 * UIKit, MapKit, CoreData 
 
 ## Installation
-1. Download Zip file and open OnTheMap.xcodeproj
+1. Download Zip file and open VirtualTourtist.xcodeproj
 2. Chose build target iOS Simulator or iPhone
 3. Run app by selecting Build button or Command + R
 
