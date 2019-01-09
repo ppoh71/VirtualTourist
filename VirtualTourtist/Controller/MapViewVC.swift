@@ -129,8 +129,8 @@ extension MapViewVC{
         let locationOnMap: CLLocationCoordinate2D? = mapView.convert(locationInView, toCoordinateFrom: mapView)
         
         if let locationOnMap = locationOnMap{
-            addAnnotation(location: locationOnMap)
-            persistPin(location: locationOnMap)
+            //addAnnotation(location: locationOnMap)
+            //persistPin(location: locationOnMap)
         }
     }
     
