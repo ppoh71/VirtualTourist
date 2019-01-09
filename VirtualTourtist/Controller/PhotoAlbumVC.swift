@@ -21,12 +21,16 @@ class PhotoAlbumVC: UIViewController {
     @IBOutlet weak var indicator: UIActivityIndicatorView!
     @IBOutlet weak var mapTopConstraint: NSLayoutConstraint!
     @IBOutlet weak var noPhotosLabel: UILabel!
+    @IBOutlet weak var pager: UILabel!
     
     var dataController: DataController!
     var fetchPhotosResultController: NSFetchedResultsController<Photo>!
     var location: CLLocationCoordinate2D!
     var pin: Pin!
     var photos = [UIImage?]()
+    var photoResultPages = 0
+    var resultPage = 1
+    var nextResultPage = 1
     var downloadedPhotos = 0
     var isActiveState = false
     var orientation = UIDevice.current.orientation
@@ -36,6 +40,7 @@ class PhotoAlbumVC: UIViewController {
         super.viewDidLoad()
         setup()
     }
+    
     
     override func viewWillDisappear(_ animated: Bool) {
         unsubscribeNotification()
@@ -52,7 +57,7 @@ class PhotoAlbumVC: UIViewController {
                 if success {
                     DispatchQueue.main.async {
                         self.photos = [UIImage]()
-                        self.getFlickrPhotosForLocation()
+                        self.getFlickrPhotosForLocation(startWithFirst: false)
                         self.collectionView.reloadData()
                     }
                 }
@@ -81,8 +86,9 @@ class PhotoAlbumVC: UIViewController {
             
             if hasStoredObjects{
                 handleFetchedPhotos()
+                countFlickrPagesforLocation()
             } else {
-                getFlickrPhotosForLocation()
+                getFlickrPhotosForLocation(startWithFirst: true)
             }
         }
     }
@@ -150,7 +156,7 @@ class PhotoAlbumVC: UIViewController {
     }
     
     func showAlert(title: String, message: String){
-        let alert = Utilities.defineAlert(title: title, message: message)
+        let alert = self.defineAlert(title: title, message: message)
         self.present(alert, animated: true)
     }
 }
@@ -193,6 +199,7 @@ extension PhotoAlbumVC{
             let newPhoto = Photo(context: backgroundContext)
             newPhoto.photoData = photo.jpegData(compressionQuality: 1)
             newPhoto.index = Int16(index)
+            newPhoto.resultPage = Int16(self.resultPage)
             newPhoto.pin = pinRelation
             
             do{
@@ -209,12 +216,14 @@ extension PhotoAlbumVC{
             
             for photo in fetchedPhotos {
                 let newPhoto = imageFromPhotoData(imageData: photo.photoData)
+                nextResultPage = Int(photo.resultPage)
                 self.photos.append(newPhoto!)
             }
             DispatchQueue.main.async {
-                 self.collectionView.reloadData()
+                self.collectionView.reloadData()
+                self.pager.text = "Stored Flickr Page: \(self.nextResultPage)"
             }
-           
+            
         }
     }
     
@@ -229,7 +238,7 @@ extension PhotoAlbumVC{
                 photoObjetcs.append(photo.objectID)
             }
         }
-
+        
         backgroundContext.perform {
             for photoObjectId in photoObjetcs{
                 let deletePhoto = backgroundContext.object(with: photoObjectId)
@@ -271,22 +280,28 @@ extension PhotoAlbumVC{
 // MARK: --- --- --- FlickrApi & Photo Download --- --- ---
 extension PhotoAlbumVC{
     
-    func getFlickrPhotosForLocation() {
+    func getFlickrPhotosForLocation(startWithFirst: Bool) {
         setActiveState(isActive: true)
         
-        flickrApi.getPhotosByLocation(latitude: location.latitude, longitude: location.longitude) { (result, error) in
+        self.setNextResultPage(startWithFirst: startWithFirst)
+        flickrApi.getPhotosByLocation(latitude: location.latitude, longitude: location.longitude, resultPage: nextResultPage) { (result, error) in
             guard error == nil else {
                 self.showAlert(title: "Get Photos for Location Error", message: error?.localizedDescription ?? "FlickrApi Error")
                 return
             }
             
             if let result = result{
+                
                 if result.photos.photo.count > 0{
                     self.initEmptyPhotoArray(count: result.photos.photo.count)
                     self.handlePhotoFlickrResponse(photos: result.photos.photo)
+                    self.photoResultPages = result.photos.pages
+                    self.resultPage = result.photos.page
+                    
                     DispatchQueue.main.async {
                         self.noPhotosLabel.isHidden = true
                         self.collectionView.reloadData()
+                        self.pager.text = "Flickr Page \(self.resultPage) of \(self.photoResultPages)"
                     }
                 } else{
                     DispatchQueue.main.async {
@@ -295,8 +310,25 @@ extension PhotoAlbumVC{
                     }
                 }
             }
+            
         }
     }
+    
+    func countFlickrPagesforLocation(){
+        flickrApi.getPhotosByLocation(latitude: location.latitude, longitude: location.longitude, resultPage: 1) { (result, error) in
+            guard error == nil else {
+                self.showAlert(title: "Get Photos for Location Error", message: error?.localizedDescription ?? "FlickrApi Error")
+                return
+            }
+            
+            if let result = result{
+                if result.photos.photo.count > 0{
+                    self.photoResultPages = result.photos.pages
+                }
+            }
+        }
+    }
+    
     
     func downloadFlickrPhoto(photo: FlickrPhoto, index: Int){
         flickrApi.loadFlickrPhoto(photo: photo, index: index) { (photo, index, error) in
@@ -319,7 +351,7 @@ extension PhotoAlbumVC{
                 self.downloadedPhotos = 0
                 self.setActiveState(isActive: false)
             }
-
+            
         }
     }
     
@@ -332,9 +364,9 @@ extension PhotoAlbumVC{
     func initEmptyPhotoArray(count: Int){
         photos = [UIImage?](repeating: nil, count: count)
         DispatchQueue.main.async {
-             self.collectionView.reloadData()
+            self.collectionView.reloadData()
         }
-       
+        
     }
     
     func imageFromPhotoData(imageData: Data?) -> UIImage?{
@@ -342,6 +374,14 @@ extension PhotoAlbumVC{
             return UIImage(data: imageData)
         } else {
             return UIImage(named: "preview")
+        }
+    }
+    
+    func setNextResultPage(startWithFirst: Bool) {
+        if nextResultPage < photoResultPages && startWithFirst == false{
+            nextResultPage += 1
+        } else {
+            nextResultPage = 1
         }
     }
 }
@@ -352,8 +392,8 @@ extension PhotoAlbumVC{
     func addAnnotation(location: CLLocationCoordinate2D){
         let annotation = MKPointAnnotation()
         annotation.coordinate = location
-//        annotation.title = "Some Title"
-//        annotation.subtitle = "Some Subtitle"
+        //        annotation.title = "Some Title"
+        //        annotation.subtitle = "Some Subtitle"
         self.mapView.addAnnotation((annotation))
     }
     
@@ -369,7 +409,7 @@ extension PhotoAlbumVC{
 extension PhotoAlbumVC: MKMapViewDelegate{
     
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-        guard annotation is MKPointAnnotation else { print("no mkpointannotaions"); return nil }
+        guard annotation is MKPointAnnotation else { debugPrint("no mkpointannotaions"); return nil }
         let reuseId = "pin"
         var pinView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId) as? MKPinAnnotationView
         
@@ -413,17 +453,17 @@ extension PhotoAlbumVC: UICollectionViewDelegate, UICollectionViewDataSource {
 
 // MARK: --- --- --- NSFetchedResultsControllerDelegate --- --- ---
 extension PhotoAlbumVC: NSFetchedResultsControllerDelegate{
-
+    
     func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
         /*
          implement this function to keep resultController up-to-date on very perform.
          no explicit action on every perform implemented, but possile with switch
-        switch type {
-            case .insert:
-            case .delete:
-            case .move:
-            case .update:
-        } */
+         switch type {
+         case .insert:
+         case .delete:
+         case .move:
+         case .update:
+         } */
     }
 }
 

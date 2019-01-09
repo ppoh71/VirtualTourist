@@ -11,7 +11,7 @@ import MapKit
 import CoreData
 
 class MapViewVC: UIViewController {
-
+    
     @IBOutlet weak var mapView: MKMapView!
     
     var lastVisibleMapArea: MKMapRect!
@@ -19,6 +19,7 @@ class MapViewVC: UIViewController {
     var dataController: DataController!
     var fetchedPinsController: NSFetchedResultsController<Pin>!
     var fetchedPinByLocationController: NSFetchedResultsController<Pin>!
+    var lastAddedAnnotation: MKPointAnnotation?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -53,18 +54,30 @@ class MapViewVC: UIViewController {
     }
     
     @objc func longTap(sender: UIGestureRecognizer){
-        if sender.state == .began {
-            getLocationInView(sender)
+        guard let newLocation = getLocationInView(sender) else {
+            return
+        }
+        
+        switch sender.state{
+        case .began:
+            addAnnotation(location: newLocation)
+        case .changed:
+            lastAddedAnnotation?.coordinate.latitude = newLocation.latitude
+            lastAddedAnnotation?.coordinate.longitude = newLocation.longitude
+        case .ended:
+            persistPin(location: newLocation, annotation: lastAddedAnnotation!)
+        default:
+            return
         }
     }
     
     func showAlert(title: String, message: String){
-        let alert = Utilities.defineAlert(title: title, message: message)
+        let alert = self.defineAlert(title: title, message: message)
         self.present(alert, animated: true)
     }
 }
 
-// MARK: --- --- --- CoreData Function --- --- --- 
+// MARK: --- --- --- CoreData Function --- --- ---
 extension MapViewVC{
     
     func fetchPins(){
@@ -88,12 +101,11 @@ extension MapViewVC{
         let predicateLong = NSPredicate(format: "longitude == %lf", longitude)
         fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [predicateLat, predicateLong])
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createDate", ascending: false)]
-        
-        fetchedPinByLocationController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: dataController.viewContext, sectionNameKeyPath: nil, cacheName: "pin")
+        fetchedPinByLocationController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: dataController.viewContext, sectionNameKeyPath: nil, cacheName: nil)
         
         do{
             try fetchedPinByLocationController.performFetch()
-
+            
             if let fetchedResult = fetchedPinByLocationController.fetchedObjects{
                 if fetchedResult.count >= 1 {
                     fetchedPin = fetchedResult[0]
@@ -107,16 +119,23 @@ extension MapViewVC{
         return fetchedPin
     }
     
-    func persistPin(location: CLLocationCoordinate2D){
+    func persistPin(location: CLLocationCoordinate2D, annotation: MKPointAnnotation){
         let newPin = Pin(context: dataController.viewContext)
         newPin.latitude = location.latitude
         newPin.longitude = location.longitude
         newPin.createDate = Date()
         
-        do{
-            try dataController.viewContext.save()
-        } catch{
-            showAlert(title: "Persist Pin Error", message: error.localizedDescription)
+        dataController.viewContext.perform {
+            do{
+                try self.dataController.viewContext.save()
+                
+                //set the newly persited annotoation again, due to problems with selecting a dragged pin
+                self.mapView.removeAnnotation(annotation)
+                self.addAnnotation(location: location)
+                
+            } catch{
+                self.showAlert(title: "Persist Pin Error", message: error.localizedDescription)
+            }
         }
     }
 }
@@ -124,18 +143,15 @@ extension MapViewVC{
 // MARK: --- --- --- MapKit Function --- --- ---
 extension MapViewVC{
     
-    func getLocationInView(_ sender: UIGestureRecognizer) {
+    func getLocationInView(_ sender: UIGestureRecognizer) -> CLLocationCoordinate2D? {
         let locationInView = sender.location(in: mapView)
         let locationOnMap: CLLocationCoordinate2D? = mapView.convert(locationInView, toCoordinateFrom: mapView)
         
-        if let locationOnMap = locationOnMap{
-            //addAnnotation(location: locationOnMap)
-            //persistPin(location: locationOnMap)
-        }
+        return locationOnMap
     }
     
     func addStoredPinsToMap() {
-       self.mapView.removeAnnotations(self.mapView.annotations)
+        self.mapView.removeAnnotations(self.mapView.annotations)
         if let fetchedPins = fetchedPinsController.fetchedObjects{
             for pin in fetchedPins {
                 let location = CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude)
@@ -167,9 +183,10 @@ extension MapViewVC{
     func addAnnotation(location: CLLocationCoordinate2D){
         let annotation = MKPointAnnotation()
         annotation.coordinate = location
-//        annotation.title = "Some Title"
-//        annotation.subtitle = "Some Subtitle"
+        //        annotation.title = "Some Title"
+        //        annotation.subtitle = "Some Subtitle"
         self.mapView.addAnnotation((annotation))
+        self.lastAddedAnnotation = annotation
     }
 }
 
@@ -177,7 +194,7 @@ extension MapViewVC{
 extension MapViewVC: MKMapViewDelegate{
     
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-        guard annotation is MKPointAnnotation else { print("no mkpointannotaions"); return nil }
+        guard annotation is MKPointAnnotation else { debugPrint("no mkpointannotaions"); return nil }
         
         let reuseId = "pin"
         var pinView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId) as? MKPinAnnotationView
@@ -185,16 +202,24 @@ extension MapViewVC: MKMapViewDelegate{
         if pinView == nil {
             pinView = MKPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
             pinView!.canShowCallout = false
-            pinView!.rightCalloutAccessoryView = UIButton(type: .infoDark)
+            //pinView!.rightCalloutAccessoryView = UIButton(type: .infoDark)
             pinView!.pinTintColor = UIColor.black
         }
         else {
             pinView!.annotation = annotation
         }
+        
         return pinView
     }
     
+    func mapView(_ mapView: MKMapView, didAdd views: [MKAnnotationView]) {
+        for view in views {
+            mapView.deselectAnnotation(view.annotation, animated: false)
+        }
+    }
+    
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+        
         if let latitude = view.annotation?.coordinate.latitude, let longitude = view.annotation?.coordinate.longitude{
             if let fetchedPin = fetchPin(latitude: latitude, longitude: longitude){
                 let photoAlbumVC = storyboard!.instantiateViewController(withIdentifier: "PhotoAlbum") as! PhotoAlbumVC

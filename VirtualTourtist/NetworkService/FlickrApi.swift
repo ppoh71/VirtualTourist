@@ -20,15 +20,15 @@ class FlickrApi{
     
     enum Endpoints{
         case baseUrl
-        case getPhotosByLocation(latitude:Double, lontitude: Double)
+        case getPhotosByLocation(latitude:Double, lontitude: Double, resultPage: Int)
         case downloadPhotoUrl(farm: Int, server: String, id: String, secret: String)
         
         var stringValue: String {
             switch self{
             case .baseUrl:
                 return "https://api.flickr.com/services/rest/"
-            case .getPhotosByLocation(let latitude, let longitude):
-                return Endpoints.baseUrl.stringValue + "?method=flickr.photos.search&api_key=" + shared.apiKey + "&lat=\(latitude)&lon=\(longitude)&per_page=27&format=json&nojsoncallback=1"
+            case .getPhotosByLocation(let latitude, let longitude, let resultPage):
+                return Endpoints.baseUrl.stringValue + "?method=flickr.photos.search&api_key=" + shared.apiKey + "&lat=\(latitude)&lon=\(longitude)&per_page=27&page=\(resultPage)&format=json&nojsoncallback=1"
             case .downloadPhotoUrl(let farm, let server, let id,  let secret):
                 return "https://farm\(farm).staticflickr.com/\(server)/\(id)_\(secret).jpg"
             }
@@ -38,27 +38,27 @@ class FlickrApi{
             return URL(string: self.stringValue)!
         }
     }
-
+    
     func loadFlickrPhoto(photo: FlickrPhoto, index: Int, completion: @escaping (UIImage?, Int?, Error?) -> Void ){
         let photoUrl = Endpoints.downloadPhotoUrl(farm: photo.farm, server: photo.server, id: photo.id, secret: photo.secret).url
-
+        
         let task = URLSession.shared.dataTask(with: photoUrl) { (data, response, error) in
             guard let data = data else{
-                 completion(nil, index, nil)
+                completion(nil, index, nil)
                 return
             }
             
             if let image = UIImage(data: data){
                 DispatchQueue.main.async {
-                     completion(image, index, nil)
+                    completion(image, index, nil)
                 }
             }
         }
         task.resume()
     }
     
-    func getPhotosByLocation(latitude: Double, longitude: Double, completion: @escaping (FlickrResponsePhotos?, Error?) -> Void) {
-        let endPointURL = Endpoints.getPhotosByLocation(latitude: latitude, lontitude: longitude).url
+    func getPhotosByLocation(latitude: Double, longitude: Double, resultPage: Int, completion: @escaping (FlickrResponsePhotos?, Error?) -> Void) {
+        let endPointURL = Endpoints.getPhotosByLocation(latitude: latitude, lontitude: longitude, resultPage: resultPage).url
         let request = URLRequest(url: endPointURL)
         let session = URLSession.shared
         

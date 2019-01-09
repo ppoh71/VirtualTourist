@@ -112,9 +112,19 @@
                                     <action selector="newCollectionButtonTapped:" destination="kw3-h0-CfJ" eventType="touchUpInside" id="lK7-HY-xH7"/>
                                 </connections>
                             </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="z5e-cu-06l">
+                                <rect key="frame" x="98" y="662" width="179" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="179" id="ngg-6s-Y6v"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="11"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
+                            <constraint firstItem="0P2-eh-rUZ" firstAttribute="bottom" secondItem="z5e-cu-06l" secondAttribute="bottom" constant="5" id="2MR-lw-ARi"/>
                             <constraint firstItem="76s-Mo-aCU" firstAttribute="trailing" secondItem="0P2-eh-rUZ" secondAttribute="trailing" id="2Tg-qT-ZBq"/>
                             <constraint firstItem="76s-Mo-aCU" firstAttribute="top" secondItem="bTe-uV-meM" secondAttribute="top" constant="85" id="BhW-GC-2T6"/>
                             <constraint firstItem="wvu-Mu-i17" firstAttribute="bottom" secondItem="0P2-eh-rUZ" secondAttribute="bottom" constant="-57" id="ENS-La-vVF"/>
@@ -124,6 +134,7 @@
                             <constraint firstItem="25E-W6-SJo" firstAttribute="centerY" secondItem="bTe-uV-meM" secondAttribute="centerY" id="eMP-ZA-NLz"/>
                             <constraint firstItem="wvu-Mu-i17" firstAttribute="top" secondItem="76s-Mo-aCU" secondAttribute="bottom" id="nTJ-QC-tqU"/>
                             <constraint firstItem="vUv-bw-e2Z" firstAttribute="centerX" secondItem="bTe-uV-meM" secondAttribute="centerX" id="r9g-fK-2gx"/>
+                            <constraint firstItem="z5e-cu-06l" firstAttribute="centerX" secondItem="bTe-uV-meM" secondAttribute="centerX" id="sPr-9I-coS"/>
                             <constraint firstItem="0P2-eh-rUZ" firstAttribute="bottom" secondItem="vUv-bw-e2Z" secondAttribute="bottom" constant="19" id="v15-Al-0Kz"/>
                             <constraint firstItem="76s-Mo-aCU" firstAttribute="leading" secondItem="0P2-eh-rUZ" secondAttribute="leading" id="vq7-kA-feA"/>
                         </constraints>
@@ -137,6 +148,7 @@
                         <outlet property="mapView" destination="76s-Mo-aCU" id="zjA-vx-tPI"/>
                         <outlet property="newCollectionButton" destination="vUv-bw-e2Z" id="cBp-pN-Ujb"/>
                         <outlet property="noPhotosLabel" destination="25E-W6-SJo" id="gkx-yA-PHt"/>
+                        <outlet property="pager" destination="z5e-cu-06l" id="dwn-93-YkD"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="WH8-rD-zgY" userLabel="First Responder" sceneMemberID="firstResponder"/>
