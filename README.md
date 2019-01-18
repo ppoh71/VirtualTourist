@@ -21,3 +21,4 @@ Public Domain
 
 ## Acknowledgments
 [Udacity iOS Developer Nanodegree](https://eu.udacity.com/course/ios-developer-nanodegree--nd003)
+This App passed the Udacity Review
